@@ -1,0 +1,125 @@
+trigger:
+  batch: true
+  branches:
+    include:
+      - main
+      - feature/*
+      - bugfix/*
+    exclude:
+      - feature/experimental/*
+  paths:
+    exclude:
+      - "*.md"
+      - "cicd.yml"
+pr: none # YAML PR triggers are supported only in GitHub and Bitbucket Cloud.
+# If you use Azure Repos Git, you can configure a branch policy for build validation to trigger your build pipeline for validation.
+
+variables:
+  mainTemplate: '$(Build.SourcesDirectory)\bicep-template\main.bicep'
+  devParameters: '$(Build.SourcesDirectory)\parameters\dev.params.json'
+
+pool:
+  vmImage: "windows-latest"
+
+stages:
+  - stage: CI
+    displayName: Build
+    jobs:
+      - job: verify
+        steps:
+          - task: Npm@1
+            displayName: "Install yaml-lint"
+            inputs:
+              command: "custom"
+              customCommand: "install yaml-lint -g"
+
+          - task: PowerShell@2
+            displayName: "Perform YAML syntax validation"
+            inputs:
+              targetType: "inline"
+              script: |
+                Get-ChildItem -Path "$(Build.SourcesDirectory)" -Recurse -Include "*.yml" |
+                  ForEach-Object {
+                    $ymlFile = $_.FullName
+                    Write-Host "[INFO] Validating [$ymlFile]"
+                    yml-lint $_
+                  }
+              failOnStdErr: true
+
+          - task: Npm@1
+            displayName: "Install jsonlint"
+            inputs:
+              command: "custom"
+              customCommand: "install jsonlint -g"
+
+          - task: PowerShell@2
+            displayName: "Perform JSON syntax validation"
+            inputs:
+              targetType: "inline"
+              script: |
+                Get-ChildItem -Path "$(Build.SourcesDirectory)" -Recurse -Include "*.json" |
+                  ForEach-Object {
+                    $jsonFile = $_.FullName
+                    Write-Host "[INFO] Validating [$jsonFile]"
+                    jsonlint $_
+                  }
+              failOnStdErr: true
+
+      - job: publish
+        steps:
+          - task: PowerShell@2
+            displayName: "Bicep Build"
+            inputs:
+              filePath: '$(Build.SourcesDirectory)\scripts\build-bicep-templates.ps1'
+              arguements: '-mainTemplatePath "$(mainTemplate)"'
+
+          - task: CopyFiles@2
+            inputs:
+              sourceFolder: '$(Build.SourcesDirectory)\bicep-template'
+              contents: |
+                **
+              targetFolder: $(Build.ArtifactsStagingDirectory\bicep-template)
+
+          - task: CopyFiles@2
+            inputs:
+              sourceFolder: '$(Build.SourcesDirectory)\parameters'
+              contents: |
+                **
+              targetFolder: $(Build.ArtifactsStagingDirectory\parameters)
+
+          - task: CopyFiles@2
+            inputs:
+              sourceFolder: '$(Build.SourcesDirectory)\scripts'
+              contents: |
+                **
+              targetFolder: $(Build.ArtifactsStagingDirectory\scripts)
+
+          - task: PublishPipelineArtifact@1
+            displayName: "Pipeline Drop"
+            inputs:
+              pathToPublish: "$(Build.ArtifactsStagingDirectory)"
+              artifactName: "drop"
+              publishLocation: pipeline
+
+  - stage: CD
+    displayName: Deploy
+    dependsOn: CI
+    jobs:
+      - deployment: Deploy
+        environment:
+          name: dev
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: drop
+                  patterns: "**"
+                - task: AzureResourceManagerTemplateDeployment@3
+                  displayName: "ARM Template Deployment"
+                  inputs:
+                    deploymentScope: Subscription
+                    azureResourceManagerConnection:
+                    location:
+                    csmFile: $(mainTemplate)
+                    csmParametersFile: $(devParameters)
