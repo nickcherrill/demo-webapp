@@ -5,13 +5,111 @@
 		"location": {
 			"value": "uksouth"
 		},
-		"privateEndpoint": {
+		"tags": {
 			"value": {
-				"Name": "",
-				"virtualNetworkName": "",
-				"subnetName": "",
-				"connectsToType": "",
-				"linkedServiceID": ""
+				"Dept": "Web Hosting",
+				"Environment": "Development",
+				"Business Criticality": "Mission-Critical",
+				"Budget Approver": "Bruce Wayne"
+			}
+		},
+		"frontDoorResourceGroup": {
+			"value": "FrontDoor-RG"
+		},
+		"webTierResourceGroup": {
+			"value": "WebTier-RG"
+		},
+		"dataTierResourceGroup": {
+			"value": "DataTier-RG"
+		},
+		"webSubnets": {
+			"metadata": {
+				"assumptions1": "FW is deployed on a hub located at 10.100.0.5 separate to this deployment",
+				"assumptions2": "More specific routes are available from VNet peerings therefore redundant/not included in route tables"
+			},
+			"value": [
+				{
+					"name": "WebDelegated-snet",
+					"subnetPrefix": "10.10.0.0/26",
+					"privateEndpointNetworkPolicies": "Disabled",
+					"addDelegation": true,
+					"delegationName": "delegation",
+					"delegatedServiceName": "Microsoft.web/serverfarms",
+					"addServiceEndpoint": false,
+					"attachNSG": true,
+					"nsgProperties": [
+						{
+							"name": "deny-all-all-internet-outbound",
+							"priority": 100,
+							"access": "deny",
+							"sourceAddressPrefix": "*",
+							"destinationAddressPrefix": "Internet",
+							"destinationPortRange": "*",
+							"direction": "outbound",
+							"protocol": "Tcp"
+						}
+					],
+					"attachRouteTable": true,
+					"routeProperties": [
+						{
+							"name": "route-to-front-door",
+							"addressPrefix": "0.0.0.0/0",
+							"nextHopType": "VirtualAppliance",
+							"nextHopIpAddress": "10.0.0.5"
+						}
+					]
+				},
+				{
+					"name": "WebPrivateLink-snet",
+					"subnetPrefix": "10.10.0.0/26",
+					"privateEndpointNetworkPolicies": "Disabled",
+					"addDelegation": false,
+					"addServiceEndpoint": false,
+					"attachNSG": true,
+					"nsgProperties": [
+						{
+							"name": "deny-all-all-internet-outbound",
+							"priority": 100,
+							"access": "deny",
+							"sourceAddressPrefix": "*",
+							"destinationAddressPrefix": "Internet",
+							"destinationPortRange": "*",
+							"direction": "outbound",
+							"protocol": "Tcp"
+						}
+					],
+					"attachRouteTable": true,
+					"routeProperties": [
+						{
+							"name": "route-to-hub-fw",
+							"addressPrefix": "0.0.0.0/0",
+							"nextHopType": "VirtualAppliance",
+							"nextHopIpAddress": "10.100.0.4"
+						}
+					]
+				}
+			]
+		},
+		"webVnetName": {
+			"value": "web-spoke-vnet"
+		},
+		"webAddressPrefixes": {
+			"value": [
+				"10.10.0.0/22"
+			]
+		},
+		"sqlPrivateEndpoint": {
+			"value": {
+				"Name": "sqlPrivateEndpoint",
+				"subnetName": "DataPrivateLink-snet",
+				"connectsToType": "sqlServer"
+			}
+		},
+		"webPrivateEndpoint": {
+			"value": {
+				"Name": "webPrivateEndpoint",
+				"subnetName": "WebPrivateLink-snet",
+				"connectsToType": "web"
 			}
 		}
 	}
