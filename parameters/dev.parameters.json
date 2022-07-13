@@ -61,7 +61,7 @@
 				},
 				{
 					"name": "WebPrivateLink-snet",
-					"subnetPrefix": "10.10.0.0/26",
+					"subnetPrefix": "10.10.1.0/26",
 					"privateEndpointNetworkPolicies": "Disabled",
 					"addDelegation": false,
 					"addServiceEndpoint": false,
