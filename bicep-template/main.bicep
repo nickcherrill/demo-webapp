@@ -119,3 +119,22 @@ module deploySQLPrivateEndpoint '../modules/privateendpoint.bicep' = {
     subnetName: sqlPrivateEndpoint.subnetName
   }
 }
+
+// This section describes additional resource and/or modules missing from the proposed solution
+//
+// Placeholder: Front Door
+// Placeholder: WAF Policy for Front Door
+// Placeholder: Key Vault
+// Placeholder: Key Vault Private Endpoint
+// Placeholder: Key Vault Access Policy
+// Placeholder: App Service Plan - Front End
+// Placeholder: App Service Plan - Front End Private Endpoint
+// Placeholder: App Service - Web
+// Placeholder: App Service Plan - Back End
+// Placeholder: App Service Plan - Back End Private Endpoint
+// Placeholder: App Service - API
+// Placeholder: SQL Server w/ Database
+// Placeholder: SQL Server Private Endpoint
+// Placeholder: App Insights
+// Placeholder: VNet Peerings
+//
